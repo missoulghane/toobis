@@ -1,297 +1,103 @@
-# Spécification Globale Produit
-Code Produit : "OUIMOVE"
+# OUIMOVE — Spécification produit
 
-## Application de mobilité urbaine - Maroc
-**Version du document : 1.1** **Produit : Application mobile de calcul d'itinéraires transport** **Marché initial : Kénitra, Maroc** **Marché cible : Villes moyennes : Oujda, Berkane ...**
+## 1. Description globale du produit
 
----
+OUIMOVE est une application de mobilité urbaine inspirée d'applications comme Citymapper, adaptée aux réalités des villes marocaines. Elle permet à un utilisateur de trouver facilement un trajet entre deux points en combinant marche à pied, lignes de bus, et à terme grands taxis et petits taxis, avec estimation du temps de trajet, du budget, et information temps réel lorsque disponible.
 
-# 1. Vision du produit
+**Objectifs utilisateurs** : trouver rapidement comment se déplacer en transport en commun, connaître les options disponibles, réduire l'incertitude liée aux transports, préparer ses trajets quotidiens.
 
-Le produit a pour objectif de fournir une solution de mobilité urbaine inspirée des applications comme Citymapper, adaptée aux réalités des villes marocaines.
-L'application permet aux utilisateurs de trouver facilement un trajet en transport entre deux points en combinant :
-- marche à pied ;
-- lignes de bus disponibles ;
-- correspondances ;
-- estimation du temps de trajet ;
-- information temps réel lorsque disponible.
+**Objectifs business** : construire progressivement une plateforme de mobilité urbaine multi-ville, une base de données transport fiable, une solution proposable aux opérateurs et collectivités.
 
----
+**Marché** : lancement à Kénitra, avec une extension envisagée vers d'autres villes moyennes marocaines (Oujda, Berkane...), puis potentiellement les grandes villes.
 
-# 2. Objectifs produit
+**Produit multi-composants** :
+- **Application mobile** (React Native, iOS/Android) : recherche d'itinéraire, favoris, notifications, suivi temps réel, affichage cartographique.
+- **Back-office web** (React) : gestion des villes, lignes, arrêts, itinéraires.
+- **API Backend** (Spring Boot) : gestion utilisateurs, calcul d'itinéraires, données transport, services temps réel.
 
-## Objectifs utilisateurs
-Permettre à un utilisateur de :
-- trouver rapidement comment se déplacer en bus et grands taxis ;
-- connaître les lignes disponibles ;
-- réduire l'incertitude liée aux transports publics ;
-- préparer ses trajets quotidiens.
+**Support multilingue** : le produit doit être compatible dès le lancement avec le français, l'arabe (avec support RTL) et l'anglais, avec une architecture i18n native et des noms de lieux multilingues.
 
-## Objectifs business
-Construire progressivement :
-- une plateforme de mobilité urbaine multi-ville ;
-- une base de données transport fiable ;
-- une solution pouvant être proposée aux opérateurs et collectivités.
+**Architecture technique cible** : Spring Boot (backend), PostgreSQL + PostGIS (base de données spatiale), React Native (mobile), React (back-office).
+
+**Indicateurs de succès** : nombre d'utilisateurs actifs, précision de l'estimation des trajets, nombre de lignes et arrêts référencés, taux d'adoption multi-villes.
 
 ---
 
-# 3. Périmètre fonctionnel global
+## 2. Description du MVP v1 — La première version lancée aux utilisateurs finaux
 
-## Applications
-Le produit comprend :
+Le MVP se limite à une seule brique fonctionnelle, sur le périmètre d'une seule ville (Kénitra), pour les modes de transport marche et bus :
 
-### Application mobile
-Technologie : React Native (iOS / Android)  
-Fonctions principales : 
-- recherche d'itinéraire (textuel en V1) ; 
-- favoris (Domicile, Travail, Autres ...) via stockage local puis compte utilisateur ; 
-- Notifications (Problèmes sur les lignes, accidents ...) ;
-- suivi temps réel ;
-- affichage cartographique (introduit en Version 5).
+### Recherche et calcul d'itinéraire
 
-### Back-office Web
-Technologie : React Web  
-Fonctions : 
-- Gestion des villes ; 
-- Gestion des lignes (Bus & Grands Taxis) ; 
-- gestion des arrêts ; 
-- gestion des itinéraires ; 
-- import/export des données transport.
+L'utilisateur renseigne un point de départ et un point d'arrivée (adresse, arrêt de bus référencé, ou position GPS). L'application affiche de manière textuelle : ligne(s) de bus recommandée(s), arrêts de départ et d'arrivée, correspondances éventuelles, temps de marche estimé.
 
-### API Backend
-Technologie : Spring Boot  
-Responsabilités : 
-- gestion utilisateurs ; 
-- calcul itinéraires ; 
-- gestion données transport ; 
-- services temps réel.
+**Transverse au MVP** : Support FR/AR/EN avec RTL natif dès le lancement ; back-office permettant la création des lignes, arrêts et parcours nécessaires à l'exploitation du MVP.
+
+**Ce qui est explicitement hors MVP** : L'estimation du temps de trajet, le compte utilisateur, la cartographie, le temps réel, l'intégration des grands taxis et petits taxis, la standardisation GTFS. Ces éléments sont traités post-lancement.
+
+### Points de vigilance technique du MVP
+
+Même si l'affichage reste purement textuel côté utilisateur, l'architecture sous-jacente doit déjà anticiper la suite pour éviter une réécriture ultérieure :
+
+- **Un MVP "textuel" mais 100% spatial en base de données** : pour calculer un itinéraire textuel, le backend a déjà besoin de coordonnées géographiques pour situer les arrêts de bus et calculer les distances de marche. L'absence de carte à l'écran ne dispense donc pas de construire dès le MVP un modèle de données géospatial complet.
+- **Personnalisation à moindre coût malgré l'absence de compte** : en l'absence de compte utilisateur dans le MVP, le stockage local du téléphone (AsyncStorage en React Native) peut être utilisé pour conserver les dernières recherches de l'utilisateur, donnant une forme de personnalisation sans attendre le Lot 2.
+- **Support RTL, principal point de vigilance UI** : l'affichage textuel en arabe avec alignement de droite à gauche demande une attention particulière sur les listes d'étapes de type « Marche → Bus 12 → Marche », qui doivent rester lisibles et cohérentes dans les deux sens de lecture.
 
 ---
 
-# 4. Support multilingue
+## 3. MVP v2 — Deuxième livraison, après le MVP v1
 
-Le produit doit être compatible dès la première version avec :
-- Français (FR)
-- Arabe (AR)
-- Anglais (EN)
+Une fois le MVP v1 validé auprès des premiers utilisateurs, un deuxième lot vient enrichir le produit avec les briques suivantes :
 
-Contraintes :
-- support RTL (Right-to-Left) pour l'arabe ;
-- noms des lieux multilingues ;
-- architecture i18n native.
+### Estimation du temps de trajet
 
----
+Calcul et affichage du temps de marche jusqu'au départ, du temps d'attente estimé, de la durée du trajet en bus, du temps de correspondance et du temps de marche jusqu'à l'arrivée. Les estimations s'appuient sur la distance, la vitesse moyenne, la période de la journée et l'historique disponible.
 
-# 5. Roadmap produit
+### Compte utilisateur et personnalisation
 
-## Version 1 - Recherche et calcul d'itinéraire (MVP textuel)
-### Objectif
-Permettre à un utilisateur de trouver un trajet en transport entre deux points de manière simple et textuelle, **sans interface cartographique (Pas d'affichage carte)**.
+Inscription, connexion, profil utilisateur. Gestion des lieux favoris (domicile, travail, autres), historique des recherches, favoris synchronisés, raccourcis de trajet. Ce lot permet notamment de faire basculer les recherches sauvegardées en local vers un compte synchronisé.
 
-### Fonctionnalités
-#### Recherche trajet
-L'utilisateur peut renseigner :
-- point de départ
-- point d'arrivée
+### Cartographie (visualisation statique)
 
-Les points peuvent être une adresse ou un arrêt de bus référencé.
+Intégration d'un SDK de carte, affichage de la position des arrêts, du tracé des lignes, et du parcours complet de l'utilisateur (marche + bus) superposé sur la carte. Cette carte reste statique à ce stade : ni position live des bus, ni heure d'arrivée dynamique — ces éléments relèvent des orientations stratégiques à définir post MVP.
 
-#### Calcul itinéraire
-L'application affiche de manière textuelle / liste :
-- ligne(s) de bus recommandée(s) ;
-- arrêts de départ et d'arrivée ;
-- correspondances éventuelles ;
-- temps de marche estimé.
-
-### Livrables Version 1
-#### Application mobile
-- écran recherche trajet ;
-- écran résultats (mode liste / textuel, sans carte) ;
-- gestion FR/AR/EN.
-#### Backend
-- API recherche trajet ;
-- moteur de calcul itinéraire initial ;
-- gestion réseau transport.
-#### Back-office
-- création ville ;
-- création lignes ;
-- création arrêts ;
-- création parcours.
-#### Données
-- intégration réseau bus Kénitra ;
-- base initiale lignes et arrêts.
+Concernant le choix du SDK, **OpenStreetMap** constitue souvent l'option la plus économique pour démarrer sur le marché marocain, en évitant les frais d'API volumineux de Google Maps ; ce choix reste néanmoins à valider selon la qualité des données OSM disponibles sur Kénitra.
 
 ---
 
-## Version 2 - Estimation du temps de trajet
-### Objectif
-Fournir une estimation réaliste du temps nécessaire pour effectuer un trajet.
+## 4. Orientations stratégiques pour la suite
 
-### Fonctionnalités
-Ajout du calcul :
-- temps de marche départ ;
-- temps d'attente estimé ;
-- durée trajet bus ;
-- temps correspondance ;
-- temps marche arrivée.
+Une fois le MVP (v1 & v2) lancé, deux orientations stratégiques distinctes se dessinent pour la suite du produit. Le choix entre les deux doit être mûri à la lumière des résultats du lancement (usages observés, signaux partenaires) : elles engagent des modèles économiques, des types de partenaires et des architectures de données différents. 
 
-### Modèle d'estimation
-Les estimations prennent en compte :
-- distance ;
-- vitesse moyenne ;
-- période de la journée ;
-- historique disponible.
+### Orientation 1 — Partenariat opérateurs, logique « ERP transport »
 
-### Livrables Version 2
-#### Application mobile
-- affichage durée totale ;
-- détail par étape ;
-- indication attente estimée.
-#### Backend
-- service calcul temps ;
-- gestion paramètres vitesse ;
-- statistiques trajet.
-#### Back-office
-- configuration temps moyens ;
-- analyse performances lignes.
+Partenariat avec une compagnie de bus et/ou une collectivité pour obtenir l'accès aux données temps réel des bus (position GPS, heure d'arrivée estimée, alertes retard), complété par un module de gestion des chauffeurs (planning, suivi, exploitation) destiné aux opérateurs. Le produit évolue alors partiellement vers un outil B2B d'exploitation transport, avec un modèle économique de type licence/abonnement opérateur, éventuellement appuyé par un financement institutionnel.
+
+Les données d'usage collectées grâce aux comptes utilisateurs du MVP permettront de démontrer aux compagnies de bus (à commencer par l'opérateur local à Kénitra : FOUGHAL) quelles lignes sont les plus demandées — un argument de légitimité commerciale central pour la vente du module « ERP ».
+
+### Orientation 2 — Grand public, logique multimodale
+
+Partenariat avec les collectivités porté sur l'attractivité du territoire, avec intégration des petits taxis et grands taxis dans le moteur de recherche (référencement des stations et lignes habituelles, itinéraires mixtes, estimation des coûts et temps d'attente). Le produit reste centré sur l'usager final et sur la couverture exhaustive des modes de déplacement disponibles en ville, avec un modèle économique orienté volume d'utilisateurs.
+
+Dans ce cas, la cartographie statique devra évoluer pour intégrer des points d'intérêt spécifiques aux taxis (stations de grands taxis, points de passage habituels).
+
+### Indicateurs à observer pour arbitrer entre les deux orientations
+
+- répartition des trajets recherchés : pendulaires réguliers vs trajets ponctuels non couverts par le bus ;
+- réactivité d'une compagnie de bus à un partenariat data, vs intérêt d'une collectivité pour une couverture multimodale élargie ;
+- capacité interne à maintenir une base de données terrain (taxis) dans la durée ;
+- disponibilité de financements fléchés « modernisation opérateur » vs « attractivité citoyenne ».
+
+### Orientation 3 — Extension multi-ville
+
+Décision volontairement différée et indépendante des deux orientations ci-dessus : elle sera tranchée après le lancement du MVP à Kénitra. À noter pour plus tard : la vitesse de réplication multi-ville diffère selon l'orientation retenue (un partenariat opérateur par ville pour l'Orientation 1, contre une collecte de données terrain par ville pour l'Orientation 2) — un paramètre à réintégrer dans cet arbitrage le moment venu.
 
 ---
 
-## Version 3 - Compte utilisateur et personnalisation
-### Objectif
-Améliorer l'expérience quotidienne et la fidélisation.
+## 5. Plan de route recommandé
 
-### Fonctionnalités
-#### Création compte utilisateur
-- inscription ;
-- connexion ;
-- profil utilisateur.
-#### Personnalisation
-- domicile ;
-- travail ;
-- lieux favoris ;
-- historique recherches.
+**Phase MVP v1 — objectif : sortir vite.** Saisie d'adresses, moteur de calcul Spring Boot / PostGIS, intégration des données de lignes de Kénitra dans le back-office React, interface de résultats textuels en trois langues (FR/AR/EN).
 
-### Livrables Version 3
-#### Application mobile
-- authentification ;
-- espace utilisateur ;
-- favoris synchronisés ;
-- raccourcis trajet.
-#### Backend
-- gestion comptes ;
-- stockage préférences ;
-- sécurité utilisateur.
-#### Base de données
-Ajout des tables : utilisateurs, préférences, historique.
+**Phase MVP v2 — objectif : rendre l'application attractive.** Choix et intégration du SDK cartographique, développement du module d'estimation des temps de trajet, création du système d'authentification et de personnalisation.
 
----
-
-## Version 4 - Information temps réel GPS
-### Objectif
-Afficher la position réelle des bus et améliorer fortement la précision des horaires.
-
-### Fonctionnalités
-- position GPS des bus ;
-- estimation d'arrivée prochaine (ETA) ;
-- retard éventuel ;
-- information trafic.
-
-### Architecture
-Flux : Bus GPS → Service temps réel → API → Application mobile
-
-### Livrables Version 4
-#### Backend
-- service GPS ;
-- gestion positions temps réel ;
-- calcul ETA.
-#### Application mobile
-- arrivée estimée temps réel ;
-- notifications de retard.
-#### Intégration opérateur
-- connexion système GPS existant ou installation d'équipements.
-
----
-
-## Version 5 - Cartographie et Visualisation (MAP)
-### Objectif
-*Introduit après le temps réel.* Fournir un affichage cartographique visuel complet pour faciliter l'orientation spatiale de l'utilisateur.
-
-### Fonctionnalités
-- Intégration d'un SDK de carte (**Décision technique à valider** : Google Maps VS Mapbox VS OpenStreetMap).
-- Position visuelle des arrêts sur la carte.
-- Parcours graphique des lignes.
-- Tracé complet du trajet de l'utilisateur (marche + bus) superposé sur la carte.
-- Affichage des bus en mouvement (exploitant les données temps réel de la V4).
-
-### Livrables Version 5
-#### Application mobile
-- Composant carte intégré ;
-- Écran de guidage visuel dynamique.
-
----
-
-## Version 6 - Lot "Grands Taxis"
-### Objectif
-Enrichir le moteur de recherche en intégrant le réseau des Grands Taxis (taxis collectifs), composante indispensable et structurante de la mobilité urbaine et périurbaine au Maroc.
-
-### Fonctionnalités
-- Référencement des stations de grands taxis, des points de passage et des lignes/trajets habituels.
-- Calcul d'itinéraires mixtes ou alternatifs (Bus + Grand Taxi ou Marche + Grand Taxi).
-- Modèle d'estimation des coûts (tarifs fixes par place) et temps d'attente estimé selon le remplissage théorique.
-
----
-
-## Version 7 - Standardisation GTFS & Industrialisation
-### Objectif
-Passer à l'échelle sur le plan technique en adoptant les standards du marché mondial pour simplifier l'extension multi-villes et les partenariats institutionnels.
-
-### Fonctionnalités
-- Refonte de la base de données transport pour s'aligner nativement sur le format standard mondial **GTFS** (General Transit Feed Specification).
-- Back-office : Intégration de modules d'import et d'export de fichiers GTFS pour automatiser les mises à jour de données auprès des collectivités ou des opérateurs de transport.
-
----
-
-# 6. Architecture technique cible
-
-## Backend
-Spring Boot (Modules : authentification, utilisateurs, transport, itinéraires, temps réel, module d'import/export GTFS).
-
-## Base de données
-PostgreSQL + PostGIS (Gestion spatiale des villes, lignes, arrêts, coordonnées GPS et parcours).
-
-## Mobile
-React Native (Android / iOS) avec support RTL natif.
-
-## Web Admin
-React (Données transport, administration, supervision, gestion des fichiers GTFS).
-
----
-
-# 7. Évolution géographique
-
-## Phase pilote
-Ville : Kénitra  
-Objectif : Valider l'usage utilisateur, la qualité des données initiales et le modèle opérationnel en mode textuel/liste avant de déployer l'infrastructure lourde de la carte.
-
-## Extension
-Déploiement progressif : Autres villes moyennes marocaines (Oujda, Berkane...) puis grandes villes et réseau national.
-
----
-
-# 8. Indicateurs de succès
-- Nombre d'utilisateurs actifs ;
-- Précision de l'estimation des trajets ;
-- Nombre de lignes et arrêts référencés (Bus + Taxis) ;
-- Taux d'adoption multi-villes.
-
----
-
-# 9. Principes directeurs et Décisions à valider
-
-1. La qualité des données transport est prioritaire.
-2. Le produit est multi-ville dès sa conception.
-3. Le support FR/AR/EN (avec RTL) est obligatoire dès la V1.
-4. **L'affichage de la carte (MAP) est repoussé en Version 5**, s'adossant à l'infrastructure temps réel (V4), permettant un lancement initial plus rapide, focalisé sur la fiabilité de l'itinéraire textuel.
-5. **[DÉCISION À VALIDER] Choix du SDK Cartographique (V5) :** Arbitrage financier et technique entre Google Maps (coûteux à l'échelle), Mapbox, ou OpenStreetMap.
-6. **[DÉCISION À VALIDER] Standardisation GTFS (V7) :** Choix d'implémenter le format standard mondial en fin de roadmap pour accélérer le développement initial, ou évaluation d'un alignement dès le départ.
+**Phase Arbitrage.** Analyse des données d'usage collectées après le lancement du Lot 2 (délai indicatif : environ 3 mois) pour choisir entre l'Orientation 1 et l'Orientation 2, sur la base des indicateurs listés en section 4.
