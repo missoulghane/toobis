@@ -1,161 +1,297 @@
-# ARCHITECTURE — Règles non négociables (Athena)
+# Spécification Globale Produit
+Code Produit : "OUIMOVE"
 
-> Document de référence. Toute génération de code doit le respecter.
-> Les règles ci-dessous sont vérifiées par ArchUnit (voir src/test/.../architecture).
+## Application de mobilité urbaine - Maroc
+**Version du document : 1.1** **Produit : Application mobile de calcul d'itinéraires transport** **Marché initial : Kénitra, Maroc** **Marché cible : Villes moyennes : Oujda, Berkane ...**
 
-## 1. Sens des dépendances
-- Flux autorisé : web → application → domain ← infrastructure
-- `domain` ne dépend de RIEN d'autre que la JDK et le code `domain`.
-- Aucun import sous `**/domain/**` de : org.springframework, jakarta.persistence,
-  com.fasterxml.jackson, lombok. (Violation = build cassé.)
+---
 
-## 2. Domaine
-- Records ou classes finales immuables. Factory methods validantes.
-- equals/hashCode sur la valeur pour tous les Value Objects.
-- Identité entre aggregates par VO d'ID (UUID encapsulé), JAMAIS par référence objet.
-  Ex : Property porte un ManagerId, pas un Manager.
-- Deux VO de mot de passe distincts : RawPassword (transitoire, validé, jamais persisté
-  ni loggé) et HashedPassword (résultat du PasswordEncoderPort, seul persisté).
+# 1. Vision du produit
 
-## 3. Flux command/query
-- Request DTO (web) → Command/Query (application) → UseCase (port in) → Domain
-  → Repository Port (port out) → Persistence Adapter → Entity → Domain → Response DTO.
-- Un Request DTO n'atteint JAMAIS un UseCase.
-- Écritures via Command, lectures via Query.
+Le produit a pour objectif de fournir une solution de mobilité urbaine inspirée des applications comme Citymapper, adaptée aux réalités des villes marocaines.
+L'application permet aux utilisateurs de trouver facilement un trajet en transport entre deux points en combinant :
+- marche à pied ;
+- lignes de bus disponibles ;
+- correspondances ;
+- estimation du temps de trajet ;
+- information temps réel lorsque disponible.
 
-## 4. Structure d'une feature (à cloner à l'identique)
-<feature>/
-  application/{port/in, port/out, command, query, dto, usecase}
-  domain/{model, valueobject, repository, service, exception}
-  infrastructure/{persistence, mapper, adapter, security}
-  web/{controller, request, response, advice}
+---
 
-## 5. Inter-features
-- Pas d'accès direct au repo d'une autre feature.
-- Toute dépendance cross-feature passe par un port out (interface côté feature
-  appelante, adapter d'implémentation côté infrastructure).
+# 2. Objectifs produit
 
-## 6. Lombok
-- Autorisé UNIQUEMENT dans web et infrastructure. Interdit dans domain et application.
+## Objectifs utilisateurs
+Permettre à un utilisateur de :
+- trouver rapidement comment se déplacer en bus et grands taxis ;
+- connaître les lignes disponibles ;
+- réduire l'incertitude liée aux transports publics ;
+- préparer ses trajets quotidiens.
 
-## 7. Pièges techniques connus
-- Ordre des annotation processors : Lombok PUIS MapStruct dans maven-compiler-plugin.
-- VO à factory privée : fournir explicitement les convertisseurs MapStruct
-  (@Named/default), réutilisés via uses = {...}. Aucun mapper ne compile sans eux.
-- OptimisticLockingFailureException → HTTP 409 dans le GlobalExceptionHandler.
+## Objectifs business
+Construire progressivement :
+- une plateforme de mobilité urbaine multi-ville ;
+- une base de données transport fiable ;
+- une solution pouvant être proposée aux opérateurs et collectivités.
 
-## 8. Sécurité
-- Interdit : User implements UserDetails. Passer par UserPrincipal (infrastructure).
-- JWT HMAC HS256. Refresh token persisté + rotation + révocation au logout.
-- Permissions métier converties en GrantedAuthority pour @PreAuthorize.
+---
 
-## 9. Schéma de base & stratégie de test (décision assumée)
-- Flyway est la SOURCE DE VÉRITÉ du schéma en production (PostgreSQL),
-  via db/migration/V1__baseline.sql (schéma cible complet dès le départ).
-- En prod : spring.jpa.hibernate.ddl-auto=validate (Hibernate vérifie, ne modifie pas).
-- Limite connue d'H2 : ne supporte pas l'index unique partiel
-  (CREATE UNIQUE INDEX ... WHERE status='ACTIVE'). Donc :
-  - Tests @DataJpaTest : tournent sur H2 avec ddl-auto=create-drop, Flyway DÉSACTIVÉ.
-    Ils valident le MAPPING et les REQUÊTES, PAS le schéma Flyway de production.
-  - Validation du schéma Flyway réel : DÉLÉGUÉE aux tests d'intégration Testcontainers
-    (PostgreSQL + Flyway activé), à mettre en place en itération 3.
-- CONSÉQUENCE À RETENIR : une erreur dans V1__baseline.sql ne sera PAS attrapée
-  par les @DataJpaTest. Ne jamais considérer le vert des slices comme une validation
-  du schéma de prod.
-- TODO itération 3 : isoler la désactivation Flyway (actuellement globale dans
-  src/test/resources/application.yml) pour qu'elle ne s'applique PAS au profil
-  d'intégration Testcontainers.
+# 3. Périmètre fonctionnel global
 
-## 10. Dette technique connue (à arbitrer)
-- Génération du refresh token (SecureRandom, 32 octets) actuellement dans la couche
-  application (LoginUseCaseImpl, RefreshTokenUseCaseImpl). Acceptable (JDK pur, aucune
-  dépendance framework), mais le "comment générer de l'aléa" relève plutôt d'un port
-  infrastructure. À refactorer derrière un TokenGeneratorPort si purisme souhaité.
-  Non bloquant. ArchUnit ne le détecte pas (SecureRandom n'est pas un framework).
+## Applications
+Le produit comprend :
 
-## 11. Convention de découpage des controllers (autorisation)
+### Application mobile
+Technologie : React Native (iOS / Android)  
+Fonctions principales : 
+- recherche d'itinéraire (textuel en V1) ; 
+- favoris (Domicile, Travail, Autres ...) via stockage local puis compte utilisateur ; 
+- Notifications (Problèmes sur les lignes, accidents ...) ;
+- suivi temps réel ;
+- affichage cartographique (introduit en Version 5).
 
-Règle de décision pour scinder ou non les controllers d'une feature :
+### Back-office Web
+Technologie : React Web  
+Fonctions : 
+- Gestion des villes ; 
+- Gestion des lignes (Bus & Grands Taxis) ; 
+- gestion des arrêts ; 
+- gestion des itinéraires ; 
+- import/export des données transport.
 
-- **Deux controllers** quand les URLs "self" et "admin" DIFFÈRENT.
-  L'appelant agit sur lui-même via /me/* (id pris dans le token, jamais dans l'URL),
-  un admin agit sur une cible via /{id}. Pas de collision de route possible.
-  → Cas `user` : UserMeController (/api/v1/users/me/*, authenticated)
-                 + UserAdminController (/api/v1/users/{id}, /api/v1/users, hasAuthority('ROLE_ADMIN')).
-  Chaque controller a une politique d'autorisation HOMOGÈNE (toute la classe = même niveau).
+### API Backend
+Technologie : Spring Boot  
+Responsabilités : 
+- gestion utilisateurs ; 
+- calcul itinéraires ; 
+- gestion données transport ; 
+- services temps réel.
 
-- **Un seul controller** quand l'URL est PARTAGÉE entre admin et propriétaire.
-  Admin et propriétaire visent le même chemin /{id} avec une condition d'accès différente.
-  Séparer en deux classes créerait une collision de route (même chemin, deux @Mapping).
-  → Cas à venir `property`/`manager`/`rentalOffer` : un controller, autorisation PAR MÉTHODE
-    via @PreAuthorize combinant rôle ET ownership, ex. :
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or @<feature>Security.isOwner(#id, authentication)")
-  L'ownership est porté par un @Component de sécurité dédié par feature (infrastructure),
-  qui charge la ressource et compare son propriétaire à l'utilisateur authentifié.
+---
 
-Principe directeur : on sépare par DIVERGENCE D'URL, pas par dogme "un controller par rôle".
-L'autorisation reste exprimée avec hasAuthority('ROLE_...') (convention du projet, pas hasRole).
+# 4. Support multilingue
 
-## 12. Rôle transverse de la feature `auth`
+Le produit doit être compatible dès la première version avec :
+- Français (FR)
+- Arabe (AR)
+- Anglais (EN)
 
-La feature `auth` joue un double rôle : c'est une feature (endpoints login/logout/refresh)
-ET un fournisseur d'infrastructure d'authentification pour toute l'application.
+Contraintes :
+- support RTL (Right-to-Left) pour l'arabe ;
+- noms des lieux multilingues ;
+- architecture i18n native.
 
-`auth.infrastructure.security` contient SecurityConfiguration (chaîne de filtres,
-requestMatchers, policy stateless), le filtre JWT, les handlers entry-point/access-denied,
-UserPrincipal et DomainUserDetailsService. Ces composants sécurisent TOUS les controllers
-de l'application.
+---
 
-Décision (analysée) : on NE déplace PAS cette config vers shared. Raisons :
-- SecurityConfiguration est densément couplée aux mécanismes d'auth (filtre JWT, providers,
-  handlers). La mettre dans shared forcerait shared à dépendre d'auth → inversion de
-  dépendance interdite.
-- Vérifié : AUCUNE feature hors auth ne référence auth.infrastructure.security dans son
-  code. Les controllers SUBISSENT la sécurité (via la chaîne de filtres + @PreAuthorize)
-  sans en DÉPENDRE à la compilation. L'encapsulation est donc déjà correcte.
+# 5. Roadmap produit
 
-Conclusion : auth fournit la sécurité de façon transverse, c'est légitime. La config y
-reste. Une dépendance "feature X → auth" pour l'authentification est acceptable et
-attendue (sens normal). L'inverse (auth → X) reste interdit.
+## Version 1 - Recherche et calcul d'itinéraire (MVP textuel)
+### Objectif
+Permettre à un utilisateur de trouver un trajet en transport entre deux points de manière simple et textuelle, **sans interface cartographique (Pas d'affichage carte)**.
 
-## 13. Versioning de l'API
+### Fonctionnalités
+#### Recherche trajet
+L'utilisateur peut renseigner :
+- point de départ
+- point d'arrivée
 
-Toute l'API est exposée sous le préfixe `/api/v1` (endpoints `user` ET `auth`).
+Les points peuvent être une adresse ou un arrêt de bus référencé.
 
-**Principe : préfixe CENTRALISÉ, controllers ignorants.**
-- La constante `shared.web.ApiVersion.V1 = "/api/v1"` est la source de vérité.
-- `shared.infrastructure.configuration.WebMvcConfiguration` applique ce préfixe à tous les
-  `@RestController` du projet via `PathMatchConfigurer.addPathPrefix(ApiVersion.V1, predicate)`.
-- Les `@RequestMapping` des controllers restent relatifs (ex. `/users`, `/auth`) — ils ne
-  connaissent pas `/api/v1`.
+#### Calcul itinéraire
+L'application affiche de manière textuelle / liste :
+- ligne(s) de bus recommandée(s) ;
+- arrêts de départ et d'arrivée ;
+- correspondances éventuelles ;
+- temps de marche estimé.
 
-**Conséquence pour les tests** : `@WebMvcTest` charge les `WebMvcConfigurer` beans, donc le
-préfixe est actif dans les slices de test. Toutes les URLs de test utilisent `/api/v1/...`.
+### Livrables Version 1
+#### Application mobile
+- écran recherche trajet ;
+- écran résultats (mode liste / textuel, sans carte) ;
+- gestion FR/AR/EN.
+#### Backend
+- API recherche trajet ;
+- moteur de calcul itinéraire initial ;
+- gestion réseau transport.
+#### Back-office
+- création ville ;
+- création lignes ;
+- création arrêts ;
+- création parcours.
+#### Données
+- intégration réseau bus Kénitra ;
+- base initiale lignes et arrêts.
 
-**Pour passer à v2** : changer `ApiVersion.V1` (ou ajouter `ApiVersion.V2`) et reconfigurer
-`WebMvcConfiguration`. Un seul point de changement ; les controllers ne bougent pas.
+---
 
-## 14. Email (transverse)
+## Version 2 - Estimation du temps de trajet
+### Objectif
+Fournir une estimation réaliste du temps nécessaire pour effectuer un trajet.
 
-L'envoi d'email est découpé en deux responsabilités distinctes.
+### Fonctionnalités
+Ajout du calcul :
+- temps de marche départ ;
+- temps d'attente estimé ;
+- durée trajet bus ;
+- temps correspondance ;
+- temps marche arrivée.
 
-**Transport (shared)** — `shared.application.port.out.EmailSenderPort` :
-```
-void send(EmailVO to, String subject, String htmlBody)
-```
-Interface générique, sans aucun concept métier. Implémentée par
-`shared.infrastructure.email.GmailEmailAdapter` (SMTP, Spring Mail). Réutilisable par
-toute feature ayant besoin d'envoyer un email (user, property, manager…).
+### Modèle d'estimation
+Les estimations prennent en compte :
+- distance ;
+- vitesse moyenne ;
+- période de la journée ;
+- historique disponible.
 
-**Composition (feature)** — chaque feature qui envoie un email est responsable de son
-contenu (sujet, corps HTML, lien éventuel). Ex. : `user.application.usecase.VerificationEmailComposer`
-(package-private) compose le sujet et le corps du mail de vérification ; le use case construit
-le lien et appelle `EmailSenderPort.send(...)`.
+### Livrables Version 2
+#### Application mobile
+- affichage durée totale ;
+- détail par étape ;
+- indication attente estimée.
+#### Backend
+- service calcul temps ;
+- gestion paramètres vitesse ;
+- statistiques trajet.
+#### Back-office
+- configuration temps moyens ;
+- analyse performances lignes.
 
-**Règle** : `shared` ne dépend d'AUCUN concept métier des features. Le flux est :
-```
-UseCase (feature) → compose sujet + corps → EmailSenderPort (shared) → GmailEmailAdapter
-```
+---
 
-Aucune règle ArchUnit actuelle ne vérifie que `shared.infrastructure` ne dépend pas d'une
-feature. À surveiller si `shared` grandit.
+## Version 3 - Compte utilisateur et personnalisation
+### Objectif
+Améliorer l'expérience quotidienne et la fidélisation.
+
+### Fonctionnalités
+#### Création compte utilisateur
+- inscription ;
+- connexion ;
+- profil utilisateur.
+#### Personnalisation
+- domicile ;
+- travail ;
+- lieux favoris ;
+- historique recherches.
+
+### Livrables Version 3
+#### Application mobile
+- authentification ;
+- espace utilisateur ;
+- favoris synchronisés ;
+- raccourcis trajet.
+#### Backend
+- gestion comptes ;
+- stockage préférences ;
+- sécurité utilisateur.
+#### Base de données
+Ajout des tables : utilisateurs, préférences, historique.
+
+---
+
+## Version 4 - Information temps réel GPS
+### Objectif
+Afficher la position réelle des bus et améliorer fortement la précision des horaires.
+
+### Fonctionnalités
+- position GPS des bus ;
+- estimation d'arrivée prochaine (ETA) ;
+- retard éventuel ;
+- information trafic.
+
+### Architecture
+Flux : Bus GPS → Service temps réel → API → Application mobile
+
+### Livrables Version 4
+#### Backend
+- service GPS ;
+- gestion positions temps réel ;
+- calcul ETA.
+#### Application mobile
+- arrivée estimée temps réel ;
+- notifications de retard.
+#### Intégration opérateur
+- connexion système GPS existant ou installation d'équipements.
+
+---
+
+## Version 5 - Cartographie et Visualisation (MAP)
+### Objectif
+*Introduit après le temps réel.* Fournir un affichage cartographique visuel complet pour faciliter l'orientation spatiale de l'utilisateur.
+
+### Fonctionnalités
+- Intégration d'un SDK de carte (**Décision technique à valider** : Google Maps VS Mapbox VS OpenStreetMap).
+- Position visuelle des arrêts sur la carte.
+- Parcours graphique des lignes.
+- Tracé complet du trajet de l'utilisateur (marche + bus) superposé sur la carte.
+- Affichage des bus en mouvement (exploitant les données temps réel de la V4).
+
+### Livrables Version 5
+#### Application mobile
+- Composant carte intégré ;
+- Écran de guidage visuel dynamique.
+
+---
+
+## Version 6 - Lot "Grands Taxis"
+### Objectif
+Enrichir le moteur de recherche en intégrant le réseau des Grands Taxis (taxis collectifs), composante indispensable et structurante de la mobilité urbaine et périurbaine au Maroc.
+
+### Fonctionnalités
+- Référencement des stations de grands taxis, des points de passage et des lignes/trajets habituels.
+- Calcul d'itinéraires mixtes ou alternatifs (Bus + Grand Taxi ou Marche + Grand Taxi).
+- Modèle d'estimation des coûts (tarifs fixes par place) et temps d'attente estimé selon le remplissage théorique.
+
+---
+
+## Version 7 - Standardisation GTFS & Industrialisation
+### Objectif
+Passer à l'échelle sur le plan technique en adoptant les standards du marché mondial pour simplifier l'extension multi-villes et les partenariats institutionnels.
+
+### Fonctionnalités
+- Refonte de la base de données transport pour s'aligner nativement sur le format standard mondial **GTFS** (General Transit Feed Specification).
+- Back-office : Intégration de modules d'import et d'export de fichiers GTFS pour automatiser les mises à jour de données auprès des collectivités ou des opérateurs de transport.
+
+---
+
+# 6. Architecture technique cible
+
+## Backend
+Spring Boot (Modules : authentification, utilisateurs, transport, itinéraires, temps réel, module d'import/export GTFS).
+
+## Base de données
+PostgreSQL + PostGIS (Gestion spatiale des villes, lignes, arrêts, coordonnées GPS et parcours).
+
+## Mobile
+React Native (Android / iOS) avec support RTL natif.
+
+## Web Admin
+React (Données transport, administration, supervision, gestion des fichiers GTFS).
+
+---
+
+# 7. Évolution géographique
+
+## Phase pilote
+Ville : Kénitra  
+Objectif : Valider l'usage utilisateur, la qualité des données initiales et le modèle opérationnel en mode textuel/liste avant de déployer l'infrastructure lourde de la carte.
+
+## Extension
+Déploiement progressif : Autres villes moyennes marocaines (Oujda, Berkane...) puis grandes villes et réseau national.
+
+---
+
+# 8. Indicateurs de succès
+- Nombre d'utilisateurs actifs ;
+- Précision de l'estimation des trajets ;
+- Nombre de lignes et arrêts référencés (Bus + Taxis) ;
+- Taux d'adoption multi-villes.
+
+---
+
+# 9. Principes directeurs et Décisions à valider
+
+1. La qualité des données transport est prioritaire.
+2. Le produit est multi-ville dès sa conception.
+3. Le support FR/AR/EN (avec RTL) est obligatoire dès la V1.
+4. **L'affichage de la carte (MAP) est repoussé en Version 5**, s'adossant à l'infrastructure temps réel (V4), permettant un lancement initial plus rapide, focalisé sur la fiabilité de l'itinéraire textuel.
+5. **[DÉCISION À VALIDER] Choix du SDK Cartographique (V5) :** Arbitrage financier et technique entre Google Maps (coûteux à l'échelle), Mapbox, ou OpenStreetMap.
+6. **[DÉCISION À VALIDER] Standardisation GTFS (V7) :** Choix d'implémenter le format standard mondial en fin de roadmap pour accélérer le développement initial, ou évaluation d'un alignement dès le départ.
