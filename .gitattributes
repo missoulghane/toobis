@@ -1,9 +1,9 @@
 # Forcer la détection automatique du texte et la conversion en LF à l'écriture dans le dépôt
 * text=auto
 
-# Fichiers spécifiques à Spring Boot / Maven (venant de ton fichier initial)
-/mvnw text eol=lf [cite: 1]
-*.cmd text eol=crlf [cite: 1]
+# Fichiers spécifiques à Spring Boot / Maven 
+/mvnw text eol=lf
+*.cmd text eol=crlf
 *.sh text eol=lf
 
 # Fichiers Web & Config (Angular, React, Docker)

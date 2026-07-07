@@ -1,5 +1,5 @@
 # ==========================================
-# Général & OS (macOS spécifique)
+# Général & OS 
 # ==========================================
 .DS_Store 
 .AppleDouble
@@ -52,12 +52,11 @@ coverage/
 # Docker
 # ==========================================
 .docker/
-# Si vous stockez les données d'un conteneur BDD en local :
 /postgres_data/
 /mysql_data/
 
 # ==========================================
-# IDEs & Éditeurs (Nettoyé et complété)
+# IDEs & Éditeurs
 # ==========================================
 ### STS ###
 .apt_generated 
