@@ -1,36 +1,90 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# ==========================================
+# Général & OS (macOS spécifique)
+# ==========================================
+.DS_Store 
+.AppleDouble
+.LSOverride
+Icon_
+._*
+Thumbs.db
 
+# ==========================================
+# backend : Spring Boot & Maven
+# ==========================================
+HELP.md 
+target/ 
+!.mvn/wrapper/maven-wrapper.jar 
+!**/src/main/**/target/ 
+!**/src/test/**/target/ 
+
+# ==========================================
+# frontend : Angular & React (Node / Web)
+# ==========================================
+# Dépendances
+node_modules/
+/jspm_packages/
+
+# Builds et dossiers de sortie
+/dist/ 
+/tmp/
+/out-tsc/
+/bazel-out/
+.node_repl_history
+.npm
+.eslintcache
+
+# Angular spécifique
+.angular/
+
+# Production / Create React App / Vite
+.pnp
+.pnp.js
+coverage/
+
+# Fichiers d'environnement (Contiennent des secrets / clés d'API)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ==========================================
+# Docker
+# ==========================================
+.docker/
+# Si vous stockez les données d'un conteneur BDD en local :
+/postgres_data/
+/mysql_data/
+
+# ==========================================
+# IDEs & Éditeurs (Nettoyé et complété)
+# ==========================================
 ### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+.apt_generated 
+.classpath 
+.factorypath 
+.project 
+.settings 
+.springBeans 
+.sts4-cache 
 
 ### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+.idea/ 
+*.iws 
+*.iml 
+*.ipr 
+out/
 
 ### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+/nbproject/private/ 
+/nbbuild/ 
+/nbdist/ 
+/.nb-gradle/ 
+build/ 
+!**/src/main/**/build/ 
+!**/src/test/**/build/ 
 
 ### VS Code ###
-.vscode/
-
-### VS Code ###
-.DS_Store
+.vscode/ 
+*.code-workspace
+.history/
