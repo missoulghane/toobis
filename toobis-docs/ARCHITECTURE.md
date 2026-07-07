@@ -23,7 +23,7 @@ OUIMOVE est une application de mobilité urbaine inspirée d'applications comme 
 
 ---
 
-## 2. Description du MVP v1 — La première version lancée aux utilisateurs finaux
+## 2. MVP v1 — La première version lancée aux utilisateurs finaux
 
 Le MVP se limite à une seule brique fonctionnelle, sur le périmètre d'une seule ville (Kénitra), pour les modes de transport marche et bus :
 
@@ -40,7 +40,7 @@ L'utilisateur renseigne un point de départ et un point d'arrivée (adresse, arr
 Même si l'affichage reste purement textuel côté utilisateur, l'architecture sous-jacente doit déjà anticiper la suite pour éviter une réécriture ultérieure :
 
 - **Un MVP "textuel" mais 100% spatial en base de données** : pour calculer un itinéraire textuel, le backend a déjà besoin de coordonnées géographiques pour situer les arrêts de bus et calculer les distances de marche. L'absence de carte à l'écran ne dispense donc pas de construire dès le MVP un modèle de données géospatial complet.
-- **Personnalisation à moindre coût malgré l'absence de compte** : en l'absence de compte utilisateur dans le MVP, le stockage local du téléphone (AsyncStorage en React Native) peut être utilisé pour conserver les dernières recherches de l'utilisateur, donnant une forme de personnalisation sans attendre le Lot 2.
+- **Personnalisation à moindre coût malgré l'absence de compte** : en l'absence de compte utilisateur dans le MVP, le stockage local du téléphone (AsyncStorage en React Native) peut être utilisé pour conserver les dernières recherches de l'utilisateur, donnant une forme de personnalisation sans attendre.
 - **Support RTL, principal point de vigilance UI** : l'affichage textuel en arabe avec alignement de droite à gauche demande une attention particulière sur les listes d'étapes de type « Marche → Bus 12 → Marche », qui doivent rester lisibles et cohérentes dans les deux sens de lecture.
 
 ---
@@ -94,7 +94,7 @@ Décision volontairement différée et indépendante des deux orientations ci-de
 
 ---
 
-## 5. Plan de route recommandé
+## 5. Roadmap
 
 **Phase MVP v1 — objectif : sortir vite.** Saisie d'adresses, moteur de calcul Spring Boot / PostGIS, intégration des données de lignes de Kénitra dans le back-office React, interface de résultats textuels en trois langues (FR/AR/EN).
 
